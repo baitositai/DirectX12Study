@@ -1,0 +1,37 @@
+﻿  Engine.cpp
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(1606,67): error C2065: 'D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(1616,41): error C2065: 'D3D12_TIGHT_ALIGNMENT_MIN_COMMITTED_RESOURCE_ALIGNMENT': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(1618,41): error C2065: 'D3D12_TIGHT_ALIGNMENT_MIN_PLACED_RESOURCE_ALIGNMENT': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2053,56): error C2504: 'D3D12_SERIALIZED_ROOT_SIGNATURE_DESC': 定義されていない基底クラスが宣言されています。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2056,53): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2056,95): error C2143: 構文エラー: ',' が '&' の前にありません。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2057,46): error C2065: 'o': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2057,9): error C2614: 'CD3DX12_SERIALIZED_ROOT_SIGNATURE_DESC': イニシャライズ リスト内のクラス 'D3D12_SERIALIZED_ROOT_SIGNATURE_DESC' が基底クラスでもメンバーでもありません。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2062,9): error C2065: 'pSerializedBlob': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2063,9): error C2065: 'SerializedBlobSizeInBytes': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2067,9): error C2065: 'pSerializedBlob': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
+C:\DirectXTex-main\DirectXTex\directx\d3dx12_core.h(2068,9): error C2065: 'SerializedBlobSizeInBytes': 定義されていない識別子です。
+  (ソース ファイル 'Script/Engine.cpp' をコンパイルしています)
+  
