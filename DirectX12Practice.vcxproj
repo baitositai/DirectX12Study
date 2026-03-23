@@ -127,11 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Script\Scene.cpp" />
     <ClCompile Include="Script\Engine.cpp" />
     <ClCompile Include="Script\Application.cpp" />
     <ClCompile Include="Script\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Script\Scene.h" />
     <ClInclude Include="Script\Engine.h" />
     <ClInclude Include="Script\Application.h" />
     <ClInclude Include="Script\ComPtr.h" />

@@ -85,7 +85,11 @@ void MainLoop()
 		}
 		else
 		{
-			// Œã‚Å•`‰æˆ—‚ğÀs‚·‚é‚Æ‚±‚ë
+			// •`‰æŠJnˆ—
+			engineInstance->RenderBegin();
+
+			// •`‰æI—¹ˆ—
+			engineInstance->RenderEnd();
 		}
 	}
 }

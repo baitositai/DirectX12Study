@@ -2,7 +2,7 @@
 #include <d3d12.h>	// DirectX12関連の関数や構造体の定義に必要
 #include <stdio.h>
 #include <DirectXTex.h>
-#include <directx/d3dx12.h>
+#include <d3dx12.h>
 #include "Engine.h"
 
 Engine* engineInstance;
@@ -61,9 +61,114 @@ bool Engine::Init(HWND hwnd, UINT windowWidth, UINT windowHeight)
 		return false;
 	}
 
+	// 深度ステンシルバッファ
+	if (!CreateDepthStencil())
+	{
+		printf("デプスステンシルバッファの生成に失敗\n");
+		return false;
+	}
+
 	// 初期化に成功
 	printf("描画エンジンの初期化に成功\n");
     return true;
+}
+
+void Engine::RenderBegin()
+{
+	// 現在のレンダーターゲットを更新
+	currentRenderTarget_ = pRenderTargets_[currentBackBufferIndex_].Get();
+
+	// コマンドを初期化してためる準備をする
+	pAllocators_[currentBackBufferIndex_]->Reset();
+	pCommandList_->Reset(pAllocators_[currentBackBufferIndex_].Get(), nullptr);
+
+	// ビューポートとシザー矩形を設定
+	pCommandList_->RSSetViewports(1, &viewport_);
+	pCommandList_->RSSetScissorRects(1, &scissor_);
+
+	// 現在のフレームのレンダーターゲットビューのディスクリプタヒープの開始アドレスを取得
+	auto currentRtvHandle = pRtvHeap_->GetCPUDescriptorHandleForHeapStart();
+	currentRtvHandle.ptr += currentBackBufferIndex_ * rtvDescriptorSize_;
+
+	// 深度ステンシルのディスクリプタヒープの開始アドレス取得
+	auto currentDsvHandle = pDsvHeap_->GetCPUDescriptorHandleForHeapStart();
+
+	// レンダーターゲットが使用可能になるまで待つ
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(currentRenderTarget_, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	pCommandList_->ResourceBarrier(1, &barrier);
+
+	// レンダーターゲットを設定
+	pCommandList_->OMSetRenderTargets(1, &currentRtvHandle, FALSE, &currentDsvHandle);
+
+	// レンダーターゲットをクリア
+	const float clearColor[] = { 0.25f, 0.25f, 0.25f, 1.0f };
+	pCommandList_->ClearRenderTargetView(currentRtvHandle, clearColor, 0, nullptr);
+
+	// 深度ステンシルビューをクリア
+	pCommandList_->ClearDepthStencilView(currentDsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+}
+
+void Engine::RenderWait()
+{
+	//描画終了待ち
+	const UINT64 fenceValue = fenceValues_[currentBackBufferIndex_];
+	pQueue_->Signal(pFence_.Get(), fenceValue);
+	fenceValues_[currentBackBufferIndex_]++;
+
+	// 次のフレームの描画準備がまだであれば待機する.
+	if (pFence_->GetCompletedValue() < fenceValue)
+	{
+		// 完了時にイベントを設定.
+		auto hr = pFence_->SetEventOnCompletion(fenceValue, fenceEvent_);
+		if (FAILED(hr))
+		{
+			return;
+		}
+
+		// 待機処理.
+		if (WAIT_OBJECT_0 != WaitForSingleObjectEx(fenceEvent_, INFINITE, FALSE))
+		{
+			return;
+		}
+	}
+}
+
+void Engine::RenderEnd()
+{
+	// レンダーターゲットに書き込み終わるまで待つ
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(currentRenderTarget_, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	pCommandList_->ResourceBarrier(1, &barrier);
+
+	// コマンドの記録を終了
+	pCommandList_->Close();
+
+	// コマンドを実行
+	ID3D12CommandList* ppCmdLists[] = { pCommandList_.Get() };
+	pQueue_->ExecuteCommandLists(1, ppCmdLists);
+
+	// スワップチェーンを切り替え
+	pSwapChain_->Present(1, 0);
+
+	// 描画完了を待つ
+	RenderWait();
+
+	// バックバッファ番号更新
+	currentBackBufferIndex_ = pSwapChain_->GetCurrentBackBufferIndex();
+}
+
+ID3D12Device6* Engine::GetDevice()
+{
+	return pDevice_.Get();
+}
+
+ID3D12GraphicsCommandList* Engine::GetCommandList()
+{
+	return pCommandList_.Get();
+}
+
+UINT Engine::GetCurrentBackBufferIndex()
+{
+	return currentBackBufferIndex_;
 }
 
 // D3DD12DeviceはGPUのデバイスのインターフェース
@@ -258,6 +363,66 @@ bool Engine::CreateRenderTarget()
 		pDevice_->CreateRenderTargetView(pRenderTargets_[i].Get(), nullptr, rtvHandle);
 		rtvHandle.ptr += rtvDescriptorSize_;
 	}
+
+	return true;
+}
+
+// レンダーターゲットにただ描画するだけだと、後から書かれたものが手前に表示されてしまい、表示がおかしくなる
+// これを解消するためによく使われるのがZバッファ法と呼ばれるもので、カメラから見たZの値を持っておくためのバッ
+// ファを作り、ピクセルごとにそのバッファを見ればどれを手前に描画すれば良いかわかるというもの。
+// このZ（深度）値を持っておくためのバッファを深度ステンシルバッファと呼ぶ
+bool Engine::CreateDepthStencil()
+{
+	//DSV用のディスクリプタヒープを作成する
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	auto hr = pDevice_->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&pDsvHeap_));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	//ディスクリプタのサイズを取得
+	dsvDescriptorSize_ = pDevice_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+	D3D12_CLEAR_VALUE dsvClearValue;
+	dsvClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvClearValue.DepthStencil.Depth = 1.0f;
+	dsvClearValue.DepthStencil.Stencil = 0;
+
+	auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_RESOURCE_DESC resourceDesc(
+		D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+		0,
+		frameBufferWidth_,
+		frameBufferHeight_,
+		1,
+		1,
+		DXGI_FORMAT_D32_FLOAT,
+		1,
+		0,
+		D3D12_TEXTURE_LAYOUT_UNKNOWN,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE);
+	hr = pDevice_->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&dsvClearValue,
+		IID_PPV_ARGS(pDepthStencilBuffer_.ReleaseAndGetAddressOf())
+	);
+
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	//ディスクリプタを作成
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = pDsvHeap_->GetCPUDescriptorHandleForHeapStart();
+
+	pDevice_->CreateDepthStencilView(pDepthStencilBuffer_.Get(), nullptr, dsvHandle);
 
 	return true;
 }

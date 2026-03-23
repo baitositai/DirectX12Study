@@ -22,15 +22,15 @@ public:
 	bool Init(HWND hwnd, UINT windowWidth, UINT windowHeight);
 
 	// 描画開始
-	void DrawBegin();
+	void RenderBegin();
 
 	// 描画終了
-	void DrawEnd();
+	void RenderEnd();
 
 	// 外部に情報を渡すもの
-	ID3D12Device6* Device();
-	ID3D12GraphicsCommandList* CommandList();
-	UINT CurrentBackBufferIndex();
+	ID3D12Device6* GetDevice();
+	ID3D12GraphicsCommandList* GetCommandList();
+	UINT GetCurrentBackBufferIndex();
 
 private:
 
@@ -121,7 +121,7 @@ private:
 	ID3D12Resource* currentRenderTarget_;
 
 	// 描画完了を待つ処理
-	void WaitRender();
+	void RenderWait();
 };
 
 // どこからでも参照出来るようグローバルにする
